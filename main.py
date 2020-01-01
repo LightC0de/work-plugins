@@ -78,39 +78,72 @@ def send_position(url, payload):
 
 
 def get_payload(link):
-    r = get_with_cookies(link)
+    try:
+        r = get_with_cookies(link)
+        token = xpath(r, '//*[@name="csrfToken"]/@value')[0]
+        binaryURL = xpath(r, '//*[@name="binaryURL"]/@value')[0]
+        addOnName = xpath(r, '//*[@name="addOnName"]/@value')[0]
+        key = xpath(r, '//*[@name="key"]/@value')[0]
 
-    token = xpath(r, '//*[@name="csrfToken"]/@value')[0]
-    binaryURL = xpath(r, '//*[@name="binaryURL"]/@value')[0]
-    addOnName = xpath(r, '//*[@name="addOnName"]/@value')[0]
-    key = xpath(r, '//*[@name="key"]/@value')[0]
-
-    print('addOnName', addOnName)
-
-    return {
-        'token': token,
-        'binaryURL': binaryURL,
-        'addOnName': addOnName,
-        'key': key,
-    }
+        return {
+            'token': token,
+            'binaryURL': binaryURL,
+            'addOnName': addOnName,
+            'key': key
+        }
+    except:
+        return None
 
 
 def get_key(payload):
-    r = send_position('https://my.atlassian.com/addon/try', payload)
-    return xpath(r, '//*[@id="license-key"]')[0].text
+    try:
+        r = send_position('https://my.atlassian.com/addon/try', payload)
+        return xpath(r, '//*[@id="license-key"]')[0].text
+    except:
+        return None
+
+
+def get_links_plugins(file):
+    links = []
+    with open(file) as f:
+        line = f.readline()
+        while line:
+            links.append(line)
+            line = f.readline().rstrip()
+
+    return links
 
 
 def main():
     global NAME_FILE_JSON
     NAME_FILE_JSON = 'data.json'
 
-    # Получение данных их формы
-    link = 'https://my.atlassian.com/addon/try/com.greffon.folio?referrer=pac&binaryURL=https%3A%2F%2Fmarketplace.atlassian.com%2Fdownload%2Fapps%2F1211259%2Fversion%2F1300360'
-    payload = get_payload(link)
+    links = get_links_plugins('links.txt')
+    keys = dict()
+    for link in links:
+        payload = get_payload(link)
+        if payload != None:
+            key = get_key(payload)
+        else:
+            logging.error(
+                'Problem with get key, maybe you need change account!')
+            continue
 
-    # Отправление post запроса на получение ключа
-    key = get_key(payload)
-    print(key)
+        if key != None:
+            keys[payload['addOnName']] = key
+            logging.info(f"Added key for: {payload['addOnName']}")
+        else:
+            logging.error(
+                'Problem with get key, maybe you need change account!')
+            continue
+
+    if(len(keys) > 0):
+        with open("keys.txt", "w+") as f:
+            for key, value in keys.items():
+                f.write(f'{key}\n{value}\n\n')
+        logging.info('Seccusseful writed file with keys!')
+    else:
+        logging.warning('Array keys is empty!')
 
 
 if __name__ == "__main__":
