@@ -59,44 +59,58 @@ def get_list_projects(response):
     return projects
 
 
-def send_position(url, csrfToken):
-    try:
-        r = get_with_cookies(url)
-        print(xpath(r, '//*[@name="csrfToken"]/@value')[0])
-        data = {
-            'organisation_name': 'Putto',
-            'key': 'com.onresolve.jira.groovy.groovyrunner.data-center',
-            'addOnName': 'ScriptRunner for Jira Data Center',
-            'callback': '',
-            'licensefieldname': '',
-            'referrer': 'pac',
-            'binaryURL': 'https://marketplace.atlassian.com/download/apps/6820/version/1002340',
-            'csrfToken': csrfToken,
-            'marketplaceTermsConfirm': 'true',
-            'marketplaceTerms': 'true',
-            'usersubmit': 'true',
-            'submit': '',
-        }
-    except:
-        logging.error('Problem this project..')
-        data = {}
+def send_position(url, payload):
+    data = {
+        'organisation_name': 'Luxoft',
+        'key': payload['key'],
+        'addOnName': payload['addOnName'],
+        'callback': '',
+        'licensefieldname': '',
+        'referrer': 'pac',
+        'binaryURL': payload['binaryURL'],
+        'csrfToken': payload['token'],
+        'marketplaceTermsConfirm': 'true',
+        'marketplaceTerms': 'true',
+        'usersubmit': 'true',
+        'submit': '',
+    }
     return post_with_cookies(url, data)
+
+
+def get_payload(link):
+    r = get_with_cookies(link)
+
+    token = xpath(r, '//*[@name="csrfToken"]/@value')[0]
+    binaryURL = xpath(r, '//*[@name="binaryURL"]/@value')[0]
+    addOnName = xpath(r, '//*[@name="addOnName"]/@value')[0]
+    key = xpath(r, '//*[@name="key"]/@value')[0]
+
+    print('addOnName', addOnName)
+
+    return {
+        'token': token,
+        'binaryURL': binaryURL,
+        'addOnName': addOnName,
+        'key': key,
+    }
+
+
+def get_key(payload):
+    r = send_position('https://my.atlassian.com/addon/try', payload)
+    return xpath(r, '//*[@id="license-key"]')[0].text
 
 
 def main():
     global NAME_FILE_JSON
     NAME_FILE_JSON = 'data.json'
 
-    # Получение csrfToken
-    link = 'https://my.atlassian.com/addon/try/com.onresolve.jira.groovy.groovyrunner.data-center?referrer=pac&binaryURL=https%3A%2F%2Fmarketplace.atlassian.com%2Fdownload%2Fapps%2F6820%2Fversion%2F1002340'
-    r = get_with_cookies(link)
-    token = xpath(r, '//*[@name="csrfToken"]/@value')[0]
-    print(xpath(r, '//title')[0].text)
-    print(token)
-    
+    # Получение данных их формы
+    link = 'https://my.atlassian.com/addon/try/com.greffon.folio?referrer=pac&binaryURL=https%3A%2F%2Fmarketplace.atlassian.com%2Fdownload%2Fapps%2F1211259%2Fversion%2F1300360'
+    payload = get_payload(link)
+
     # Отправление post запроса на получение ключа
-    r = send_position('https://my.atlassian.com/addon/try', token)
-    print(r.text)
+    key = get_key(payload)
+    print(key)
 
 
 if __name__ == "__main__":
