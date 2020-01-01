@@ -39,26 +39,6 @@ def post_with_cookies(url, data):
     return s.post(url, cookies=cookies, data=data)
 
 
-def get_list_projects(response):
-    names = []
-    for name in xpath(response, '//a[contains(concat(" ",normalize-space(@class)," ")," visitable ")]'):
-        names.append(name.text)
-
-    links = []
-    for link in xpath(response, '//a[contains(concat(" ",normalize-space(@class)," ")," visitable ")]/@href'):
-        links.append(link)
-
-    i = 0
-    projects = []
-    while(i < len(names)):
-        projects.append({
-            'name': names[i],
-            'link': links[i],
-        })
-        i += 1
-    return projects
-
-
 def send_position(url, payload):
     data = {
         'organisation_name': 'Luxoft',
